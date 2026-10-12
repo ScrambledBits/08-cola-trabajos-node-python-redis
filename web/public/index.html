@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cola de trabajos</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    textarea { width: 100%; box-sizing: border-box; padding: .5rem; font: inherit; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .9rem; }
+    td, th { border-bottom: 1px solid #ddd; padding: .4rem; text-align: left; vertical-align: top; }
+    .pendiente { color: #b7791f; } .procesando { color: #2b6cb0; } .completado { color: #2f855a; }
+    .stats { background: #f4f4f4; padding: .5rem 1rem; border-radius: 6px; }
+    code { font-size: .8rem; }
+  </style>
+</head>
+<body>
+  <h1>Cola de trabajos</h1>
+  <p>Envía un texto para analizar. La web lo encola en Redis y un <em>worker</em> en Python lo procesa en segundo plano.</p>
+  <form id="formulario">
+    <textarea id="texto" rows="4" required placeholder="Pega aquí un párrafo..."></textarea>
+    <button>Encolar</button>
+    <button type="button" id="lote">Encolar 10 de ejemplo</button>
+  </form>
+  <div class="stats" id="stats"></div>
+  <table>
+    <thead><tr><th>Trabajo</th><th>Estado</th><th>Worker</th><th>Resultado</th></tr></thead>
+    <tbody id="lista"></tbody>
+  </table>
+  <script>
+    const EJEMPLO = 'Los contenedores empaquetan una aplicación con todo lo que necesita para ejecutarse. Los contenedores son ligeros y portables.';
+
+    async function encolar(texto) {
+      await fetch('/api/trabajos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto })
+      });
+    }
+
+    async function refrescar() {
+      const [trabajos, stats] = await Promise.all([
+        fetch('/api/trabajos').then(r => r.json()),
+        fetch('/api/estadisticas').then(r => r.json())
+      ]);
+      const porWorker = Object.entries(stats.procesados_por_worker).map(([w, n]) => `${w}: ${n}`).join(' · ') || 'ninguno todavía';
+      document.getElementById('stats').textContent = `En cola: ${stats.en_cola} | Procesados por worker → ${porWorker}`;
+      document.getElementById('lista').replaceChildren(...trabajos.map(t => {
+        const fila = document.createElement('tr');
+        const r = t.resultado;
+        fila.innerHTML = `<td><code></code></td><td class="${t.estado}">${t.estado}</td><td><code></code></td><td></td>`;
+        fila.children[0].firstChild.textContent = t.id.slice(0, 8);
+        fila.children[2].firstChild.textContent = t.worker ?? '—';
+        fila.children[3].textContent = r ? `${r.palabras} palabras, ${r.caracteres} caracteres, más frecuente: "${r.palabra_mas_frecuente}"` : '';
+        return fila;
+      }));
+    }
+
+    document.getElementById('formulario').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      await encolar(document.getElementById('texto').value);
+      document.getElementById('texto').value = '';
+      refrescar();
+    });
+
+    document.getElementById('lote').addEventListener('click', async () => {
+      await Promise.all(Array.from({ length: 10 }, (_, i) => encolar(`${EJEMPLO} Ejemplo número ${i + 1}.`)));
+      refrescar();
+    });
+
+    refrescar();
+    setInterval(refrescar, 1000);
+  </script>
+</body>
+</html>

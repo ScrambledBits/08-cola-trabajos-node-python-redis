@@ -1,0 +1,20 @@
+# Dependencias y entornos locales
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Artefactos generados
+dist/
+staticfiles/
+data/
+db.sqlite3
+
+# Configuración local y secretos
+.env
+
+# Sistema y editor
+.DS_Store
+.idea/
+.vscode/
+TODO.md

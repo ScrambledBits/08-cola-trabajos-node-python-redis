@@ -1,0 +1,19 @@
+{
+  "name": "cola-trabajos-web",
+  "version": "1.0.0",
+  "description": "Web que encola trabajos en Redis (proyecto educativo)",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "redis": "6.3.0"
+  }
+}
